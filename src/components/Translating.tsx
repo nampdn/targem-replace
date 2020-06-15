@@ -3,12 +3,11 @@ import stripHtml from "string-strip-html"
 import { makeStyles } from "@material-ui/core/styles"
 import LinearProgress from "@material-ui/core/LinearProgress"
 import Typography from "@material-ui/core/Typography"
-import pThrottle from "p-throttle"
 
-import { readTextFile, writeFile } from "tauri/api/fs"
+import { readTextFile } from "tauri/api/fs"
 
 import { throttledTranslate } from "../api/translate"
-import { parseSubtitle } from "../api/subtitle"
+import { parseSubtitle, saveSubtitleFile } from "../api/subtitle"
 
 const useStyles = makeStyles({
   root: {
@@ -20,12 +19,14 @@ interface TranslatingProps {
   file: any | null
   onVerseTranslated?: (data: any) => void
   onFileLoaded?: (data: any) => void
+  onFileCompleted?: (data: any) => void
 }
 
 export const Translating = ({
   file,
   onVerseTranslated = (...args: any[]) => null,
   onFileLoaded = (...args: any[]) => null,
+  onFileCompleted = (...args: any[]) => null,
 }: TranslatingProps) => {
   const classes = useStyles()
   const [data, setData] = useState({
@@ -34,7 +35,7 @@ export const Translating = ({
     progress: 0,
   })
 
-  const startTranslate = async (file: string) => {
+  const startTranslate = async (file: string, outputDir: string) => {
     const fileContent = await readTextFile(file)
     const srtData = await parseSubtitle(fileContent)
     const result: any[] = []
@@ -44,20 +45,26 @@ export const Translating = ({
       const origin = stripHtml(line.text)
       const translated = await throttledTranslate(origin)
       const translateData = { ...line, text: translated }
-      const progress = Math.round((i / srtData.length) * 100)
+      const progress = Math.floor((i / srtData.length) * 100)
       const status = { origin, translated, progress }
       result.push(translateData)
       onVerseTranslated(status)
       setData(status)
       i += 1
-      if (i > 3) break
+    }
+    try {
+      const outputFile = await saveSubtitleFile(file, outputDir, result)
+      onFileCompleted(outputFile)
+      console.log(`Translated saved at: ${outputFile}`)
+    } catch (err) {
+      console.error(err)
     }
   }
 
   useEffect(() => {
     if (file != null) {
       console.log(`Translating`, file.input)
-      startTranslate(file.input.file)
+      startTranslate(file.input.file, file.output)
     }
   }, [file])
 
@@ -65,9 +72,8 @@ export const Translating = ({
     <div className={classes.root}>
       <LinearProgress variant="determinate" value={data.progress} />
       <Typography variant="caption">
-        Translating: {data.origin} = {data.translated}
+        {data.origin} = {data.translated}
       </Typography>
-      <Typography variant="caption">Status: {data.progress}</Typography>
     </div>
   )
 }

@@ -57,12 +57,18 @@ export function App(): React.ReactElement {
 
   const translate = () => {
     openModal({ directory: true }).then((outputDir) => {
-      setOutput(outputDir)
-      setTranslatingIndex(translatingIndex + 1)
+      if (files && files.length > 0) {
+        setOutput(outputDir)
+        setTranslatingIndex(translatingIndex + 1)
+      }
     })
   }
 
   const updateProgress = (progressData: any) => {}
+
+  const nextItem = () => {
+    setTranslatingIndex(translatingIndex + 1)
+  }
 
   return (
     <Box
@@ -95,6 +101,7 @@ export function App(): React.ReactElement {
         <Translating
           file={{ input: files[translatingIndex], output }}
           onVerseTranslated={updateProgress}
+          onFileCompleted={nextItem}
         />
       )}
       <Box margin="18" flex={1} overflow="scroll">
