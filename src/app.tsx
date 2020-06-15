@@ -67,7 +67,11 @@ export function App(): React.ReactElement {
   const updateProgress = (progressData: any) => {}
 
   const nextItem = () => {
-    setTranslatingIndex(translatingIndex + 1)
+    if (translatingIndex + 1 <= files.length) {
+      setTranslatingIndex(translatingIndex + 1)
+    } else {
+      setTranslatingIndex(-1)
+    }
   }
 
   return (
@@ -99,7 +103,11 @@ export function App(): React.ReactElement {
       </Box>
       {translatingIndex != -1 && (
         <Translating
-          file={{ input: files[translatingIndex], output }}
+          file={
+            files[translatingIndex]
+              ? { input: files[translatingIndex], output }
+              : null
+          }
           onVerseTranslated={updateProgress}
           onFileCompleted={nextItem}
         />
