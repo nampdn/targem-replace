@@ -15,11 +15,14 @@ const translate = setCORS("http://cors.hjm.bid/")
 
 export const translateWithLibrary = async (source: string) => {
   try {
+    console.log(`Translating: ${source}`)
     const result: any = await translate(source, { to: "vi" })
     const text = result.text
+    console.log(`Translated: ${text}`)
     return text
   } catch (err) {
-    throw new Error(err)
+    console.error(err)
+    return null
   }
 }
 

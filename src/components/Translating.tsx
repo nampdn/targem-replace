@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react"
-import stripHtml from "string-strip-html"
+import React, { useState, useEffect, useCallback } from "react"
 import { makeStyles } from "@material-ui/core/styles"
 import LinearProgress from "@material-ui/core/LinearProgress"
 
 import { readTextFile } from "tauri/api/fs"
 
-import { throttledTranslate, translateWithLibrary } from "../api/translate"
+import { translateWithLibrary } from "../api/translate"
 import { parseSubtitle, saveSubtitleFile } from "../api/subtitle"
 import { setTimeout } from "timers"
 import Typography from "@material-ui/core/Typography"
 import Box from "@material-ui/core/Box"
+
+const stripHtml = (s) => s.replace(/(<([^>]+)>)/gi, "")
 
 const useStyles = makeStyles({
   root: {
@@ -47,26 +48,31 @@ export const Translating = ({
     translated: null,
     progress: 0,
   })
+  const [translating, setTranslating] = useState(false)
 
-  const startTranslate = async (file: string, outputDir: string) => {
+  const startTranslate = useCallback(async (file: string) => {
     const fileContent = await readTextFile(file)
     const srtData = await parseSubtitle(fileContent)
     const result: any[] = []
     onFileLoaded({ total: srtData.length, data: srtData })
     let linenumber = 0
     let buffer = ""
-    // let bufferArray = []
     for (const line of srtData) {
       const rawText = stripHtml(line.text)
-      if (buffer.length > 500) {
+      if (buffer.length < 500) {
+        buffer += "\n\n" + rawText
+      }
+
+      if (buffer.length >= 500 || linenumber + 1 >= srtData.length) {
         const origin = stripHtml(buffer)
+        console.log("Calling translate for:", origin)
         const translated = await translateWithLibrary(origin)
         const splitter = translated.split("\n\n")
         console.log(`prepare ${splitter.length} items of ${translated}`)
-        let i = linenumber - splitter.length
+        let i = linenumber - splitter.length + 1
         for (const translatedLine of splitter) {
           const translateData = { ...srtData[i], text: translatedLine }
-          const progress = Math.floor((i / srtData.length) * 100)
+          const progress = Math.round((i + 1 / srtData.length) * 100)
           const status = {
             origin: stripHtml(srtData[i].text),
             translated: translatedLine,
@@ -80,6 +86,7 @@ export const Translating = ({
             srtData[i],
             translateData.text,
             `sleep ${sleep}`,
+            status,
           )
           onVerseTranslated(status)
           setData(status)
@@ -87,25 +94,30 @@ export const Translating = ({
         }
         // Reset counting to next round
         buffer = rawText
-      } else {
-        buffer += "\n\n" + rawText
       }
       linenumber += 1
     }
-
-    try {
-      const outputFile = await saveSubtitleFile(file, outputDir, result)
-      onFileCompleted(outputFile)
-      console.log(`Translated saved at: ${outputFile}`)
-    } catch (err) {
-      console.error(err)
-    }
-  }
+    return result
+  }, [])
 
   useEffect(() => {
-    if (file != null) {
-      console.log(`Translating`, file.input)
-      startTranslate(file.input.file, file.output)
+    if (file != null && !translating) {
+      console.log("receiving props", file)
+      setTranslating(true)
+      startTranslate(file.input.file).then(async (result: any[]) => {
+        try {
+          const outputFile = await saveSubtitleFile(
+            file.input.file,
+            file.output,
+            result,
+          )
+          onFileCompleted(outputFile)
+          console.log(`Translated saved at: ${outputFile}`)
+          setTranslating(false)
+        } catch (err) {
+          console.error(err)
+        }
+      })
     }
   }, [file])
 
@@ -120,15 +132,17 @@ export const Translating = ({
             : data.progress
         }
       />
-      <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="space-between"
-        marginTop={1}
-      >
-        <Typography variant="caption">{data.origin}</Typography>
-        <Typography variant="caption">{data.translated}</Typography>
-      </Box>
+      {translating && (
+        <Box
+          display="flex"
+          flexDirection="column"
+          justifyContent="space-between"
+          marginTop={1}
+        >
+          <Typography variant="caption">{data.origin}</Typography>
+          <Typography variant="caption">{data.translated}</Typography>
+        </Box>
+      )}
     </div>
   )
 }

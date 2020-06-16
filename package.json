@@ -13,7 +13,8 @@
     "build": "npm run build:fe && npm run build:tauri",
     "dev": "concurrently -p \"[{name}]\" -n \"front-end,tauri\" -c \"bgGreen.bold,bgCyan.bold\" \"npm run dev:fe\" \"RUST_DEBUG=1 tauri dev\"",
     "dev:win": "concurrently -p \"[{name}]\" -n \"front-end,tauri\" -c \"bgGreen.bold,bgCyan.bold\" \"npm run dev:fe\" \"set RUST_DEBUG=1 && tauri dev\"",
-    "dev:fe": "webpack-dev-server --watch"
+    "dev:fe": "webpack-dev-server --watch",
+    "dev:tauri": "set RUST_DEBUG=1 && tauri dev"
   },
   "resolutions": {
     "minimist": "^1.2.2",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.10.2",
+    "@babel/plugin-transform-runtime": "7.10.1",
     "@babel/preset-env": "^7.10.2",
     "@babel/preset-react": "^7.10.1",
     "@babel/preset-typescript": "^7.10.1",
@@ -58,6 +60,7 @@
     "graphql-request": "2.0.0",
     "graphql-tag": "2.10.3",
     "p-throttle": "3.1.0",
+    "path-browserify": "1.0.1",
     "react-window": "1.8.5",
     "string-strip-html": "4.4.7",
     "subtitle": "2.0.3"

@@ -6,9 +6,10 @@ import { FileList, Translating } from "./components"
 
 import { makeStyles } from "@material-ui/core/styles"
 import Typography from "@material-ui/core/Typography"
+import Box from "@material-ui/core/Box"
 import InsertLinkIcon from "@material-ui/icons/InsertLink"
 import SendIcon from "@material-ui/icons/Send"
-import { Button, Box } from "@material-ui/core"
+import { Button } from "@material-ui/core"
 
 const useStyles = makeStyles((theme) => ({
   button: {
@@ -91,7 +92,6 @@ export function App(): React.ReactElement {
         >
           Browse...
         </Button>
-        <Typography>Dest: {output}</Typography>
         <Button
           color="primary"
           variant="contained"
