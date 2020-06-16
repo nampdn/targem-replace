@@ -52,7 +52,8 @@ export const Translating = ({
 
   const startTranslate = useCallback(async (file: string) => {
     const fileContent = await readTextFile(file)
-    const srtData = await parseSubtitle(fileContent)
+    let srtData = await parseSubtitle(fileContent)
+    srtData.splice(5, 10000) // DEBUG TO FAST SKIP FILE ONLY
     const result: any[] = []
     onFileLoaded({ total: srtData.length, data: srtData })
     let linenumber = 0
@@ -68,7 +69,7 @@ export const Translating = ({
         console.log("Calling translate for:", origin)
         const translated = await translateWithLibrary(origin)
         const splitter = translated.split("\n\n")
-        console.log(`prepare ${splitter.length} items of ${translated}`)
+        // console.log(`prepare ${splitter.length} items of ${translated}`)
         let i = linenumber - splitter.length + 1
         for (const translatedLine of splitter) {
           const translateData = { ...srtData[i], text: translatedLine }
@@ -76,18 +77,19 @@ export const Translating = ({
           const status = {
             origin: stripHtml(srtData[i].text),
             translated: translatedLine,
-            progress,
+            progress: i === srtData.length - 1 ? 100 : progress,
+            file,
           }
           result.push(translateData)
           const sleep = randomBetween(100, 1000)
           await delay(sleep)
-          console.log(
-            `Processing`,
-            srtData[i],
-            translateData.text,
-            `sleep ${sleep}`,
-            status,
-          )
+          // console.log(
+          //   `Processing`,
+          //   srtData[i],
+          //   translateData.text,
+          //   `sleep ${sleep}`,
+          //   status,
+          // )
           onVerseTranslated(status)
           setData(status)
           i += 1
@@ -101,11 +103,12 @@ export const Translating = ({
   }, [])
 
   useEffect(() => {
+    console.log("receiving props", file, translating)
     if (file != null && !translating) {
-      console.log("receiving props", file)
       setTranslating(true)
       startTranslate(file.input.file).then(async (result: any[]) => {
         try {
+          setTranslating(false)
           const outputFile = await saveSubtitleFile(
             file.input.file,
             file.output,
@@ -113,7 +116,6 @@ export const Translating = ({
           )
           onFileCompleted(outputFile)
           console.log(`Translated saved at: ${outputFile}`)
-          setTranslating(false)
         } catch (err) {
           console.error(err)
         }
