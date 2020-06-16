@@ -72,7 +72,7 @@ export const Translating = ({
         let i = linenumber - splitter.length + 1
         for (const translatedLine of splitter) {
           const translateData = { ...srtData[i], text: translatedLine }
-          const progress = Math.round((i + 1 / srtData.length) * 100)
+          const progress = Math.round((i / srtData.length) * 100)
           const status = {
             origin: stripHtml(srtData[i].text),
             translated: translatedLine,
