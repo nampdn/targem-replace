@@ -6,6 +6,10 @@ import TerserPlugin from "terser-webpack-plugin"
 import glob from "glob"
 import HtmlWebpackPlugin from "html-webpack-plugin"
 
+const mode = process.env.NODE_ENV || "development"
+const devMode = mode !== "production"
+const tauriMode = !!process.env.TAURI
+
 export default function (_, argv): webpack.Configuration[] {
   if (argv.production && argv.dev) {
     throw new Error("Cannot pass the --dev and --production flags!")
@@ -43,12 +47,17 @@ export default function (_, argv): webpack.Configuration[] {
               {
                 loader: "babel-loader",
                 options: {
-                  cacheDirectory: true,
                   babelrc: false,
+                  configFile: path.resolve(__dirname, "babel.config.js"),
+                  compact: false,
+                  cacheDirectory: true,
+                  sourceMaps: false,
                 },
               },
             ],
-            exclude: [/node_modules/],
+            // exclude: [/\bcore-js\b/, /\bwebpack\/buildin\b/],
+            exclude: /@babel(?:\/|\\{1,2})runtime|core-js/,
+            // exclude: [/node_modules\/(!?(tauri)\/.*)/],
           },
         ],
       },

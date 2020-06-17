@@ -21,7 +21,6 @@ const useStyles = makeStyles((theme) => ({
 
 export function FileList({ files = [] }) {
   const classes = useStyles()
-  const [] = React.useState([0])
 
   return (
     <List className={classes.root}>

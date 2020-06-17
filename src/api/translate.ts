@@ -1,4 +1,4 @@
-import { setCORS } from "google-translate-api-browser"
+import { translate } from "google-translate-api-browser"
 import { request } from "graphql-request"
 import gql from "graphql-tag"
 import pThrottle from "p-throttle"
@@ -11,7 +11,7 @@ export const TRANSLATE_QUERY = gql`
   }
 `
 
-const translate = setCORS("http://cors.hjm.bid/")
+// const translate = setCORS("http://cors.hjm.bid/")
 
 export const translateWithLibrary = async (source: string) => {
   try {

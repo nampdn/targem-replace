@@ -7,12 +7,21 @@ module.exports = function (api) {
     [
       "@babel/preset-env",
       {
-        useBuiltIns: "usage",
-        loose: true,
-        corejs: "2.6.5",
+        useBuiltIns: "entry",
+        corejs: {
+          version: "3",
+          proposal: true,
+        },
         // modules: "auto",
         targets: {
-          esmodules: false,
+          browsers: [
+            "edge >= 16",
+            "safari >= 9",
+            "firefox >= 57",
+            "ie >= 11",
+            "ios >= 9",
+            "chrome >= 49",
+          ],
         },
         // debug: true,
       },
@@ -23,6 +32,7 @@ module.exports = function (api) {
     ["@babel/plugin-proposal-object-rest-spread", { useBuiltIns: true }],
     // "@babel/plugin-transform-spread",
     ["@babel/plugin-proposal-class-properties", { loose: true }],
+    "@babel/plugin-transform-parameters",
     // "@babel/plugin-transform-classes",
   ]
 
@@ -35,5 +45,10 @@ module.exports = function (api) {
         sourceType: "unambiguous",
       },
     ],
+    env: {
+      development: {
+        presets: [["@babel/preset-react", { development: true }]],
+      },
+    },
   }
 }

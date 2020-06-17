@@ -2,7 +2,6 @@ import React, { useState } from "react"
 
 import { open } from "tauri/api/dialog"
 
-import { makeStyles } from "@material-ui/core/styles"
 import Box from "@material-ui/core/Box"
 import Typography from "@material-ui/core/Typography"
 import InsertLinkIcon from "@material-ui/icons/InsertLink"
@@ -12,18 +11,12 @@ import { Button } from "@material-ui/core"
 
 import { FileList, Translating, ProgressLabel } from "./components"
 
-const useStyles = makeStyles((theme) => ({
-  button: {
-    margin: theme.spacing(1),
-  },
-}))
-
 export const selectFiles = async () => {
   try {
     const files = await open({ multiple: true })
     return files
   } catch (err) {
-    console.error("Error: ", err)
+    // alert(`Error: ${JSON.stringify(err)}`)
   }
 }
 
@@ -37,7 +30,6 @@ const openModal = async (options?: any) => {
 }
 
 export function App(): React.ReactElement {
-  const classes = useStyles()
   const [files, setFiles] = useState([])
   const [output, setOutput] = useState("")
   const [translatingIndex, setTranslatingIndex] = useState(-1)
@@ -132,6 +124,23 @@ export function App(): React.ReactElement {
         >
           Translate
         </Button>
+        {/* <Button
+          onClick={async () => {
+            try {
+              const translate = setCORS("http://localhost:3030/")
+              const test = await translate("Hello World", { to: "vi" })
+              // const test = await get(
+              //   "http://localhost:3030/https://ifconfig.co/json",
+              //   { headers: { origin: "ifconfig.co" } },
+              // )
+              alert(JSON.stringify(test, null, 2))
+            } catch (err) {
+              alert(err)
+            }
+          }}
+        >
+          Test
+        </Button> */}
       </Box>
       {translatingIndex != -1 && (
         <Translating
@@ -140,7 +149,7 @@ export function App(): React.ReactElement {
           onFileCompleted={nextItem}
         />
       )}
-      <Box margin="18" height={168} flex={1} overflow="hidden">
+      <Box margin="18" height={168} flex={1}>
         <FileList files={files} />
       </Box>
     </Box>
