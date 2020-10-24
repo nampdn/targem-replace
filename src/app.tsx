@@ -1,15 +1,14 @@
+import { FileList, ProgressLabel, Replacing } from "./components"
 import React, { useState } from "react"
-
-import { open } from "tauri/api/dialog"
+import { createDir, readDir, readTextFile, writeFile } from "tauri/api/fs"
 
 import Box from "@material-ui/core/Box"
-import Typography from "@material-ui/core/Typography"
-import InsertLinkIcon from "@material-ui/icons/InsertLink"
-import DoneAllIcon from "@material-ui/icons/DoneAll"
-import SendIcon from "@material-ui/icons/Send"
 import { Button } from "@material-ui/core"
-
-import { FileList, Translating, ProgressLabel } from "./components"
+import DoneAllIcon from "@material-ui/icons/DoneAll"
+import InsertLinkIcon from "@material-ui/icons/InsertLink"
+import SendIcon from "@material-ui/icons/Send"
+import Typography from "@material-ui/core/Typography"
+import { open } from "tauri/api/dialog"
 
 export const selectFiles = async () => {
   try {
@@ -17,6 +16,28 @@ export const selectFiles = async () => {
     return files
   } catch (err) {
     // alert(`Error: ${JSON.stringify(err)}`)
+  }
+}
+
+export const selectDir = async () => {
+  try {
+    const dir = await open({ directory: true })
+    return dir
+  } catch (err) {}
+}
+
+const walkDir = async (dir: string) => {
+  const tree = await readDir(dir, { recursive: true })
+  const dirs = tree.filter((p) => p.is_dir)
+  const files = tree.filter((p) => !p.is_dir)
+  return [dirs, files]
+}
+
+const makeDirp = async (dir: string) => {
+  try {
+    await createDir(dir, { recursive: true })
+  } catch (err) {
+    console.warn(`Directory ${dir} existed, skip!`, err.message)
   }
 }
 
@@ -30,7 +51,9 @@ const openModal = async (options?: any) => {
 }
 
 export function App(): React.ReactElement {
+  const [selectedDir, setSelectedDir] = useState("")
   const [files, setFiles] = useState([])
+  const [dirs, setDirs] = useState([])
   const [output, setOutput] = useState("")
   const [translatingIndex, setTranslatingIndex] = useState(-1)
   const [done, setDone] = useState(false)
@@ -44,9 +67,30 @@ export function App(): React.ReactElement {
     setFiles(filesWithMeta)
   }
 
-  const openSelectFiles = () => {
-    selectFiles().then((selectedFiles: string[]) => {
-      updateFiles(selectedFiles)
+  const openSelectDir = () => {
+    // selectFiles().then((selectedFiles: string[]) => {
+    //   updateFiles(selectedFiles)
+    // })
+    selectDir().then((dir: string) => {
+      setSelectedDir(dir)
+      walkDir(dir).then(([dirs, files]) => {
+        updateFiles(files.map((f) => f.path))
+        setDirs(dirs.map((d) => d.path))
+      })
+    })
+  }
+
+  const replace = () => {
+    openModal({ directory: true }).then(async (outputDir: string) => {
+      setDone(false)
+      setOutput(outputDir)
+      for (const d of dirs) {
+        const absoluteOutputDir = d.replace(selectedDir, outputDir)
+        await makeDirp(absoluteOutputDir)
+      }
+      if (files && files.length > 0) {
+        nextItem()
+      }
     })
   }
 
@@ -59,8 +103,6 @@ export function App(): React.ReactElement {
       }
     })
   }
-
-  const updateProgress = (data: any) => {}
 
   const nextItem = () => {
     const nextIndex = translatingIndex + 1
@@ -75,9 +117,15 @@ export function App(): React.ReactElement {
     }
   }
 
-  const translatingFile = files[translatingIndex]
-    ? { input: files[translatingIndex], output, index: translatingIndex }
-    : null
+  console.log(`translating ${translatingIndex}: ${files[translatingIndex]}`)
+  const translatingFile =
+    translatingIndex > -1 && files[translatingIndex]
+      ? {
+          input: files[translatingIndex],
+          output: files[translatingIndex].file.replace(selectedDir, output),
+          index: translatingIndex,
+        }
+      : null
 
   return (
     <Box
@@ -97,7 +145,7 @@ export function App(): React.ReactElement {
           color="default"
           variant="contained"
           startIcon={<InsertLinkIcon />}
-          onClick={openSelectFiles}
+          onClick={openSelectDir}
         >
           Browse...
         </Button>
@@ -105,10 +153,10 @@ export function App(): React.ReactElement {
           <DoneAllIcon />
         ) : translatingIndex === -1 ? (
           files.length === 0 ? (
-            <Typography>{"<="} Select any SRT file(s) to translate</Typography>
+            <Typography>{"<="} Select directory to replace</Typography>
           ) : (
             <Typography>
-              Press "TRANSLATE" and select output folder {"=>"}
+              Press "REPLACE" and select output folder {"=>"}
             </Typography>
           )
         ) : (
@@ -120,34 +168,13 @@ export function App(): React.ReactElement {
           color="primary"
           variant="contained"
           startIcon={<SendIcon />}
-          onClick={translate}
+          onClick={replace}
         >
-          Translate
+          Replace
         </Button>
-        {/* <Button
-          onClick={async () => {
-            try {
-              const translate = setCORS("http://localhost:3030/")
-              const test = await translate("Hello World", { to: "vi" })
-              // const test = await get(
-              //   "http://localhost:3030/https://ifconfig.co/json",
-              //   { headers: { origin: "ifconfig.co" } },
-              // )
-              alert(JSON.stringify(test, null, 2))
-            } catch (err) {
-              alert(err)
-            }
-          }}
-        >
-          Test
-        </Button> */}
       </Box>
       {translatingIndex != -1 && (
-        <Translating
-          file={translatingFile}
-          onVerseTranslated={updateProgress}
-          onFileCompleted={nextItem}
-        />
+        <Replacing file={translatingFile} onFileCompleted={nextItem} />
       )}
       <Box margin="18" height={168} flex={1}>
         <FileList files={files} />

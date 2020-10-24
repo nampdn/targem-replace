@@ -1,6 +1,7 @@
 import { parse, stringify } from "subtitle"
-import { writeFile } from "tauri/api/fs"
+
 import path from "path-browserify"
+import { writeFile } from "tauri/api/fs"
 
 export const parseSubtitle = (fileContent: string) => {
   return parse(fileContent)
@@ -18,4 +19,13 @@ export const saveSubtitleFile = async (
   console.log(`Saving file ${outputfile}`, srtString)
   await writeFile({ file: outputfile, contents: srtString })
   return outputfile
+}
+
+export const saveArrayToFile = async (
+  outputFile: string,
+  strArray: string[],
+) => {
+  const combinedStr = strArray.join("\n")
+  await writeFile({ file: outputFile, contents: combinedStr })
+  return outputFile
 }
